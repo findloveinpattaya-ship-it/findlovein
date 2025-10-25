@@ -50,4 +50,5 @@ npm run dev
 - A PRICE ID megy a `STRIPE_PRICE_ID` változóba.
 
 
-redeploy-now
+
+redeploy
