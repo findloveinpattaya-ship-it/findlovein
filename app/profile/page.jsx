@@ -27,22 +27,20 @@ export default function ProfilePage() {
 
       setUserId(user.id);
 
-      // profil lekérés vagy létrehozás
       const { data: prof, error: profErr } = await supabase
         .from('profiles')
         .select('display_name, role, avatar_url')
         .eq('id', user.id)
         .single();
 
+      // PGRST116 = "No rows" – ilyenkor létrehozzuk
       if (profErr && profErr.code !== 'PGRST116') {
-        // PGRST116 = row not found
         setErr(profErr.message);
         setLoading(false);
         return;
       }
 
       if (!prof) {
-        // első belépés: hozzuk létre az üres profilt
         const { error: upsertErr } = await supabase
           .from('profiles')
           .upsert({ id: user.id, role: 'visitor' }, { onConflict: 'id' });
@@ -57,7 +55,6 @@ export default function ProfilePage() {
     })();
   }, []);
 
-  // Privát bucketnél aláírt URL a megjelenítéshez
   async function refreshAvatarSignedUrl(path) {
     if (!path) {
       setAvatarSignedUrl('');
@@ -66,7 +63,7 @@ export default function ProfilePage() {
     const { data, error } = await supabase
       .storage
       .from('avatars')
-      .createSignedUrl(path, 60 * 60); // 1 óra
+      .createSignedUrl(path, 60 * 60);
     if (error) {
       setErr(error.message);
       setAvatarSignedUrl('');
@@ -105,10 +102,9 @@ export default function ProfilePage() {
       return;
     }
 
-    const ext = file.name.split('.').pop();
+    const ext = file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
     const path = `${userId}/${Date.now()}.${ext}`;
 
-    // feltöltés privát bucketbe
     const { error: uploadErr } = await supabase
       .storage
       .from('avatars')
@@ -119,7 +115,6 @@ export default function ProfilePage() {
       return;
     }
 
-    // avatar útvonal mentése a profilba
     const { error: updateErr } = await supabase
       .from('profiles')
       .update({ avatar_url: path })
@@ -171,3 +166,35 @@ export default function ProfilePage() {
       </div>
 
       <form onSubmit={saveProfile} className="space-y-3">
+        <div>
+          <label className="block text-sm mb-1">Megjelenő név</label>
+          <input
+            className="block w-full p-2 border rounded"
+            placeholder="Pl. Laci"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm mb-1">Szerep</label>
+          <input
+            className="block w-full p-2 border rounded bg-gray-50"
+            value={role}
+            readOnly
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            A VIP előfizetés után ez automatikusan <b>vip</b>-re vált.
+          </p>
+        </div>
+
+        <button className="w-full px-3 py-2 border rounded bg-blue-500 text-white hover:bg-blue-600">
+          Mentés
+        </button>
+      </form>
+
+      {err && <p className="text-red-600 mt-3 text-center">{err}</p>}
+      {msg && <p className="text-green-600 mt-3 text-center">{msg}</p>}
+    </div>
+  );
+}
