@@ -1,29 +1,28 @@
-// app/api/create-checkout-session/route.ts
+// app/api/create-checkout-session/route.js
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import Stripe from 'stripe';
 
-// Stripe-hoz Node runtime kell
 export const runtime = 'nodejs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
 });
 
-async function makeSession() {
-  // Bejelentkezett user lekérése
+async function go() {
   const cookieStore = cookies();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     { cookies: { get: (n) => cookieStore.get(n)?.value } }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
+  const user = data?.user;
   if (!user) {
-    // ha nem vagy belépve, vissza a /vip-re infóval
-    return NextResponse.redirect(new URL('/vip?need_login=1', process.env.SITE_URL || 'http://localhost:3000'));
+    const base = process.env.SITE_URL || 'http://localhost:3000';
+    return NextResponse.redirect(new URL('/vip?need_login=1', base));
   }
 
   const siteUrl = process.env.SITE_URL || 'http://localhost:3000';
@@ -48,10 +47,8 @@ async function makeSession() {
     metadata: { user_id: user.id, vip_days: '7' },
   });
 
-  // Közvetlen átirányítás Stripe-ra
-  return NextResponse.redirect(session.url!, { status: 303 });
+  return NextResponse.redirect(session.url, { status: 303 });
 }
 
-// Mindkettő ugyanazt csinálja: GET és POST is működik
-export async function GET()  { return makeSession(); }
-export async function POST() { return makeSession(); }
+export async function GET()  { return go(); }
+export async function POST() { return go(); }
