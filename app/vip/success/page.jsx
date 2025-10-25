@@ -1,16 +1,18 @@
 'use client';
-import { useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 
-export default function VIPSuccess(){
-  useEffect(()=>{
-    (async ()=>{
-      const { data } = await supabase.auth.getUser();
-      const u = data.user;
-      if (!u) return;
-      const until = new Date(Date.now()+7*24*60*60*1000).toISOString();
-      await supabase.from('profiles').upsert({ id: u.id, vip_until: until });
-    })();
-  },[]);
-  return <div className="card"><h1>Sikeres fizetés!</h1><p>VIP aktiválva 7 napra.</p></div>;
+export default function VipSuccess() {
+  return (
+    <div className="max-w-md mx-auto mt-10 p-4 border rounded shadow text-center">
+      <h1 className="text-2xl font-semibold mb-2 text-green-600">Sikeres fizetés</h1>
+      <p className="mb-4">
+        Köszönjük! A VIP státuszod néhány percen belül aktiválódik.
+      </p>
+      <a
+        href="/profile"
+        className="inline-block px-4 py-2 border rounded bg-blue-500 text-white hover:bg-blue-600"
+      >
+        Vissza a profilra
+      </a>
+    </div>
+  );
 }
