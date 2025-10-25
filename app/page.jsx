@@ -1,27 +1,46 @@
 'use client';
+
 import { useEffect, useState } from 'react';
-import Cookies from 'cookie';
-export default function Home(){
-  const [ok, setOk] = useState(true);
-  const closed = process.env.NEXT_PUBLIC_CLOSED_TEST || process.env.CLOSED_TEST;
-  useEffect(()=>{
-    const isClosed = (closed === 'true' || closed === true);
-    if (!isClosed) return;
-    const has = document.cookie.split('; ').find(x=>x.startsWith('access_granted='));
-    setOk(!!has);
-  },[]);
-  if (!ok) {
-    return (
-      <div className="card">
-        <h1>Zárt teszt mód</h1>
-        <p>Kérlek, nyisd meg az <strong>/access</strong> oldalt és add meg a kulcsot.</p>
-      </div>
-    );
-  }
+
+export default function VipPage() {
+  const [status, setStatus] = useState({ active: false, until: null });
+
+  useEffect(() => {
+    fetch('/api/vip-status').then(async (r) => {
+      if (r.ok) setStatus(await r.json());
+    });
+  }, []);
+
   return (
-    <div className="card">
-      <h1>FindLoveIn (Pattaya)</h1>
-      <p>MVP. Regisztrálj, tölts fel képet, csevegj „hello világ”-ig, és próbáld ki a VIP-et.</p>
-    </div>
+    <main className="max-w-xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-bold">Előfizetés</h1>
+
+      {status.active ? (
+        <div className="rounded-xl border p-4">
+          <div className="font-medium">VIP aktív eddig:</div>
+          <div>{status.until ? new Date(status.until).toLocaleString() : '-'}</div>
+
+          <form action="/api/create-checkout-session" method="POST" className="mt-4">
+            <button type="submit" className="px-4 py-2 rounded-xl border">
+              +7 nap (2 €)
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="rounded-xl border p-4">
+          <div className="mb-2">VIP-od lejárt.</div>
+
+          <form action="/api/create-checkout-session" method="POST">
+            <button type="submit" className="px-4 py-2 rounded-xl border">
+              Előfizetek (2 € / 7 nap)
+            </button>
+          </form>
+        </div>
+      )}
+
+      <p className="text-sm text-gray-500">
+        Nincs automatikus megújítás. A vásárlásról Stripe küld visszaigazolást/számlát.
+      </p>
+    </main>
   );
 }
