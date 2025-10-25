@@ -2,10 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    appDir: true, // 👉 KÉNYSZERÍTI az app/ router használatát
+    appDir: true,
     serverActions: true,
   },
-  output: "standalone",
+  output: undefined, // ⚠️ se 'export', se 'standalone' — ez a kulcs!
 };
 
 export default nextConfig;
