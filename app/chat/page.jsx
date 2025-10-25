@@ -1,31 +1,62 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-export default function Chat(){
+export default function ChatPage() {
   const [user, setUser] = useState(null);
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([]);
-  useEffect(()=>{ supabase.auth.getUser().then(({data})=>setUser(data.user)); },[]);
-  function send(){
-    if (!input) return;
-    const text = input;
-    setInput('');
-    setMessages(m=>[...m, { me:true, text }, { me:false, text: `Hello világ, ${user?.email || 'ismeretlen'}!` }]);
+  const [msg, setMsg] = useState('');
+  const [chat, setChat] = useState([]);
+
+  // bejelentkezett user lekérése
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        window.location.href = '/login';
+        return;
+      }
+      setUser(data.user);
+    })();
+  }, []);
+
+  // ide csak „hello világ” szintű chat lesz: lokális, nem adatbázisos
+  function sendMsg(e) {
+    e.preventDefault();
+    if (!msg.trim()) return;
+    setChat([...chat, { user: user?.email, text: msg }]);
+    setMsg('');
   }
-  if (!user) return <div className="card">Belépés szükséges.</div>;
+
   return (
-    <div className="card">
-      <h1>Chat (demo)</h1>
-      <div className="mb-2" style={{minHeight:120}}>
-        {messages.map((m,i)=>(
-          <div key={i} className={m.me?'text-right':'text-left'}>
-            <span className="inline-block px-2 py-1 my-1 rounded" style={{background:'#f3f3f3'}}>{m.text}</span>
-          </div>
-        ))}
+    <div className="max-w-md mx-auto mt-10 p-4 border rounded shadow">
+      <h1 className="text-2xl font-semibold mb-4 text-center">Chat (tesztverzió)</h1>
+
+      <div className="border rounded p-3 h-64 overflow-y-auto bg-gray-50 mb-3">
+        {chat.length === 0 ? (
+          <p className="text-gray-500 text-sm text-center mt-10">
+            Írj valamit… (ez még csak helyi teszt)
+          </p>
+        ) : (
+          chat.map((m, i) => (
+            <div key={i} className="mb-2">
+              <b>{m.user || 'ismeretlen'}:</b> {m.text}
+            </div>
+          ))
+        )}
       </div>
-      <input className="w-full p-2 border rounded mb-2" placeholder="Írj valamit..." value={input} onChange={e=>setInput(e.target.value)} />
-      <button className="px-3 py-2 border rounded" onClick={send}>Küld</button>
+
+      <form onSubmit={sendMsg} className="flex gap-2">
+        <input
+          className="flex-1 border rounded p-2"
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          placeholder="Írj üzenetet…"
+        />
+        <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+          Küldés
+        </button>
+      </form>
     </div>
   );
 }
