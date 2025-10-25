@@ -1,0 +1,33 @@
+key,hu,en
+app.title,FindLoveIn (Pattaya),FindLoveIn (Pattaya)
+nav.home,Kezdőlap,Home
+nav.profile,Profil,Profile
+nav.chat,Chat,Chat
+nav.vip,VIP,VIP
+nav.login,Bejelentkezés,Login
+nav.signup,Regisztráció,Sign up
+nav.logout,Kijelentkezés,Logout
+access.title,Zárt teszt mód,Closed test mode
+access.prompt,Add meg a hozzáférési kulcsot,Enter access key
+access.submit,Belépés,Enter
+access.error,Rossz kulcs.,Wrong key.
+auth.email,E-mail,E-mail
+auth.password,Jelszó,Password
+auth.invite,Meghívókód,Invite code
+auth.signup,Regisztráció,Sign up
+auth.login,Bejelentkezés,Login
+profile.title,Profil,Profile
+profile.role,Szerepkör,Role
+profile.role.member,Tag,Member
+profile.role.visitor,Látogató,Visitor
+profile.username,Felhasználónév,Username
+profile.avatar,Kép feltöltése,Upload avatar
+profile.save,Mentés,Save
+chat.title,Chat (demo),Chat (demo)
+chat.placeholder,Írj valamit...,Type something...
+chat.send,Küld,Send
+vip.title,VIP előfizetés,VIP Subscription
+vip.desc,2 € / 7 nap — hozzáférés extra funkciókhoz.,€2 / 7 days — access extra features.
+vip.buy,Vásárlás Stripe-on,Buy via Stripe
+vip.success,Sikeres fizetés! VIP aktiválva.,Payment successful! VIP activated.
+vip.cancel,Megszakítva.,Cancelled.

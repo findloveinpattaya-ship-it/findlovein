@@ -1,0 +1,7 @@
+* { box-sizing: border-box; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; margin: 0; }
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; }
+input, button, select { font-size: 1rem; }
+.container { max-width: 720px; margin: 0 auto; }
+.card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
