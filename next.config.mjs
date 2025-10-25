@@ -1,6 +1,8 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: { serverActions: true },
-  output: 'standalone',
+  reactStrictMode: true,
+  // FONTOS: nincs 'output: export'!
 };
+
 export default nextConfig;
