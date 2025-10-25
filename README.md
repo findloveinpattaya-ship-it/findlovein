@@ -49,4 +49,4 @@ npm run dev
 - Recurring, Amount: 2 EUR, Billing period: 1 week.
 - A PRICE ID megy a `STRIPE_PRICE_ID` változóba.
 
-Commit
+reload
