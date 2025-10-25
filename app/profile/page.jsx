@@ -1,65 +1,173 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-export default function Profile(){
-  const [user, setUser] = useState(null);
-  const [username, setUsername] = useState('');
-  const [role, setRole] = useState('latogato');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [vipUntil, setVipUntil] = useState(null);
+export default function ProfilePage() {
+  const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState(null);
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('visitor');
+  const [avatarPath, setAvatarPath] = useState('');
+  const [avatarSignedUrl, setAvatarSignedUrl] = useState('');
+  const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
 
-  useEffect(()=>{
-    supabase.auth.getUser().then(async ({ data }) => {
-      const u = data.user;
-      setUser(u);
-      if (!u) return;
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', u.id).single();
-      if (prof) {
-        setUsername(prof.username || '');
-        setRole(prof.role || 'latogato');
-        setAvatarUrl(prof.avatar_url || '');
-        setVipUntil(prof.vip_until);
+  useEffect(() => {
+    (async () => {
+      setErr('');
+      setMsg('');
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+
+      if (!user) {
+        window.location.href = '/login';
+        return;
       }
-    });
-  },[]);
 
-  async function save(){
-    if (!user) return;
-    const { error } = await supabase.from('profiles').upsert({ id: user.id, username, role, avatar_url: avatarUrl });
-    if (!error) alert('Mentve.');
+      setUserId(user.id);
+
+      // profil lekérés vagy létrehozás
+      const { data: prof, error: profErr } = await supabase
+        .from('profiles')
+        .select('display_name, role, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      if (profErr && profErr.code !== 'PGRST116') {
+        // PGRST116 = row not found
+        setErr(profErr.message);
+        setLoading(false);
+        return;
+      }
+
+      if (!prof) {
+        // első belépés: hozzuk létre az üres profilt
+        const { error: upsertErr } = await supabase
+          .from('profiles')
+          .upsert({ id: user.id, role: 'visitor' }, { onConflict: 'id' });
+        if (upsertErr) setErr(upsertErr.message);
+      } else {
+        setName(prof.display_name || '');
+        setRole(prof.role || 'visitor');
+        setAvatarPath(prof.avatar_url || '');
+      }
+
+      setLoading(false);
+    })();
+  }, []);
+
+  // Privát bucketnél aláírt URL a megjelenítéshez
+  async function refreshAvatarSignedUrl(path) {
+    if (!path) {
+      setAvatarSignedUrl('');
+      return;
+    }
+    const { data, error } = await supabase
+      .storage
+      .from('avatars')
+      .createSignedUrl(path, 60 * 60); // 1 óra
+    if (error) {
+      setErr(error.message);
+      setAvatarSignedUrl('');
+      return;
+    }
+    setAvatarSignedUrl(data.signedUrl);
   }
 
-  async function upload(ev){
-    const file = ev.target.files[0];
-    if (!file || !user) return;
-    const path = `${user.id}/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
-    if (!error) {
-      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      setAvatarUrl(data.publicUrl);
+  useEffect(() => {
+    if (avatarPath) {
+      refreshAvatarSignedUrl(avatarPath);
     }
+  }, [avatarPath]);
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    setErr('');
+    setMsg('');
+    const { error } = await supabase
+      .from('profiles')
+      .update({ display_name: name })
+      .eq('id', userId);
+    if (error) setErr(error.message);
+    else setMsg('Profil frissítve.');
+  }
+
+  async function uploadAvatar(e) {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+
+    setErr('');
+    setMsg('');
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErr('A fájl túl nagy (max. 10 MB).');
+      return;
+    }
+
+    const ext = file.name.split('.').pop();
+    const path = `${userId}/${Date.now()}.${ext}`;
+
+    // feltöltés privát bucketbe
+    const { error: uploadErr } = await supabase
+      .storage
+      .from('avatars')
+      .upload(path, file, { upsert: false });
+
+    if (uploadErr) {
+      setErr(uploadErr.message);
+      return;
+    }
+
+    // avatar útvonal mentése a profilba
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({ avatar_url: path })
+      .eq('id', userId);
+
+    if (updateErr) {
+      setErr(updateErr.message);
+      return;
+    }
+
+    setAvatarPath(path);
+    setMsg('Kép feltöltve.');
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  }
+
+  if (loading) {
+    return <div className="max-w-sm mx-auto mt-10 p-4">Betöltés…</div>;
   }
 
   return (
-    <div className="card">
-      <h1>Profil</h1>
-      {!user && <p>Belépés szükséges.</p>}
-      {user && (
-        <>
-          <div className="mb-2">VIP: {vipUntil ? new Date(vipUntil).toLocaleString() : '—'}</div>
-          <input className="block w-full mb-2 p-2 border rounded" placeholder="Felhasználónév" value={username} onChange={e=>setUsername(e.target.value)} />
-          <select className="block w-full mb-2 p-2 border rounded" value={role} onChange={e=>setRole(e.target.value)}>
-            <option value="tag">Tag</option>
-            <option value="latogato">Látogató</option>
-          </select>
-          <div className="mb-2">
-            {avatarUrl && <img src={avatarUrl} alt="avatar" style={{maxWidth:120, borderRadius:12}} />}
-          </div>
-          <input type="file" onChange={upload} className="mb-2" />
-          <button className="px-3 py-2 border rounded" onClick={save}>Mentés</button>
-        </>
-      )}
-    </div>
-  );
-}
+    <div className="max-w-md mx-auto mt-10 p-4 border rounded shadow">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold">Profil</h1>
+        <button
+          onClick={logout}
+          className="px-3 py-2 border rounded hover:bg-gray-50"
+        >
+          Kilépés
+        </button>
+      </div>
+
+      <div className="flex items-center gap-4 mb-4">
+        <div className="w-20 h-20 rounded-full overflow-hidden border bg-gray-100 flex items-center justify-center">
+          {avatarSignedUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarSignedUrl} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-sm text-gray-500">nincs kép</span>
+          )}
+        </div>
+        <label className="text-sm">
+          <span className="block mb-1">Új profilkép</span>
+          <input type="file" accept="image/*" onChange={uploadAvatar} />
+        </label>
+      </div>
+
+      <form onSubmit={saveProfile} className="space-y-3">
